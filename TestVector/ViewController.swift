@@ -13,7 +13,8 @@ class ViewController: UIViewController {
     @IBOutlet weak var contentView: UIView!
 
     @IBOutlet weak var heightConstraint: NSLayoutConstraint!
-    let imageView = UIImageView()
+    let topImageView = UIImageView()
+    let bottomImageView = UIImageView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,12 +35,26 @@ class ViewController: UIViewController {
     }
 
     func setupImageView() {
-        imageView.frame = contentView.frame
-        imageView.contentMode = .scaleAspectFit
-        contentView.addSubview(imageView)
+        let topFrame = CGRect(x: 0,
+                              y: 0,
+                              width: contentView.frame.width,
+                              height: contentView.frame.height / 2)
 
-//        imageView.image = UIImage(named: "zzz")
-        imageView.image = convertPDFDataToImage()
+        topImageView.frame = topFrame
+        topImageView.contentMode = .scaleAspectFit
+        contentView.addSubview(topImageView)
+
+        topImageView.image = UIImage(named: "zzz")
+
+        let bottomFrame = CGRect(x: 0,
+                                 y: contentView.frame.height / 2,
+                                 width: contentView.frame.width,
+                                 height: contentView.frame.height / 2)
+        bottomImageView.frame = bottomFrame
+        bottomImageView.contentMode = .scaleAspectFit
+        contentView.addSubview(bottomImageView)
+
+        bottomImageView.image = convertPDFDataToImage()
     }
 
 
@@ -48,7 +63,7 @@ class ViewController: UIViewController {
         guard let document = CGPDFDocument(url as CFURL),
               let page = document.page(at: 1) else { return nil }
 
-        let dpi: CGFloat = 300.0 / 72.0
+        let dpi: CGFloat = 9
         let pageRect = page.getBoxRect(.mediaBox)
         let imageSize = CGSize(width: pageRect.size.width * dpi, height: pageRect.size.height * dpi)
 
@@ -62,13 +77,13 @@ class ViewController: UIViewController {
             cnv.cgContext.scaleBy(x: dpi, y: -dpi)
             cnv.cgContext.drawPDFPage(page)
         }
-
+        print(imageData.count / 1000)
         return UIImage(data: imageData)
     }
 }
 
 extension ViewController: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
-        return imageView
+        return contentView
     }
 }
