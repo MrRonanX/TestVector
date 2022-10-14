@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import PDFKit
 
 class ViewController: UIViewController {
 
@@ -16,11 +17,14 @@ class ViewController: UIViewController {
     let topImageView = UIImageView()
     let bottomImageView = UIImageView()
 
+    let start = Date().timeIntervalSince1970
+
     override func viewDidLoad() {
         super.viewDidLoad()
         contentView.backgroundColor = .orange
         setupScrollView()
         setupImageView()
+        fetchImage()
     }
 
     override func viewDidLayoutSubviews() {
@@ -54,7 +58,7 @@ class ViewController: UIViewController {
         bottomImageView.contentMode = .scaleAspectFit
         contentView.addSubview(bottomImageView)
 
-        bottomImageView.image = convertPDFDataToImage()
+//        bottomImageView.image = convertPDFDataToImage()
     }
 
 
@@ -78,6 +82,43 @@ class ViewController: UIViewController {
             cnv.cgContext.drawPDFPage(page)
         }
         print(imageData.count / 1000)
+        return UIImage(data: imageData)
+    }
+
+    func fetchImage() {
+        let url = URL(string: "http://naitbit.com/chess/zzz.pdf")!
+        let request = URLRequest(url: url)
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data else { fatalError() }
+
+            DispatchQueue.main.async {
+                self.bottomImageView.image = self.convertPDFDataToImage(from: data)
+            }
+        }
+        .resume()
+    }
+
+    func convertPDFDataToImage(from data: Data) -> UIImage? {
+        guard let document = PDFDocument(data: data),
+              let page = document.page(at: 0) else { return nil }
+
+        let dpi: CGFloat = 9
+        let pageRect = page.bounds(for: .mediaBox)
+        let imageSize = CGSize(width: pageRect.size.width * dpi, height: pageRect.size.height * dpi)
+
+        let renderer = UIGraphicsImageRenderer(size: imageSize)
+
+        let imageData = renderer.pngData { cnv in
+            UIColor.clear.set()
+            cnv.fill(pageRect)
+            cnv.cgContext.interpolationQuality = .high
+            cnv.cgContext.translateBy(x: 0.0, y: pageRect.size.height * dpi)
+            cnv.cgContext.scaleBy(x: dpi, y: -dpi)
+
+            page.draw(with: .mediaBox, to: cnv.cgContext)
+        }
+        print(imageData.count / 1000)
+        print(Date().timeIntervalSince1970 - start)
         return UIImage(data: imageData)
     }
 }
