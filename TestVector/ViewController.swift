@@ -24,7 +24,9 @@ class ViewController: UIViewController {
         contentView.backgroundColor = .orange
         setupScrollView()
         setupImageView()
-        fetchImage()
+//        fetchImage()
+//        bottomImageView.loadWithSVGKit(urlString: "https://openclipart.org/download/181651/manhammock.svg")
+        bottomImageView.loadWithWebView(urlString: "https://openclipart.org/download/181651/manhammock.svg")
     }
 
     override func viewDidLayoutSubviews() {
@@ -57,8 +59,6 @@ class ViewController: UIViewController {
         bottomImageView.frame = bottomFrame
         bottomImageView.contentMode = .scaleAspectFit
         contentView.addSubview(bottomImageView)
-
-//        bottomImageView.image = convertPDFDataToImage()
     }
 
 
@@ -126,5 +126,59 @@ class ViewController: UIViewController {
 extension ViewController: UIScrollViewDelegate {
     func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return contentView
+    }
+}
+
+import SVGKit
+
+extension UIImageView {
+    func loadWithSVGKit(urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            guard
+                let httpURLResponse = response as? HTTPURLResponse, httpURLResponse.statusCode == 200,
+                let mimeType = response?.mimeType, mimeType.hasPrefix("image"),
+                let data = data, error == nil,
+                let receivedicon: SVGKImage = SVGKImage(data: data),
+                let image = receivedicon.uiImage
+                else { return }
+            DispatchQueue.main.async() {
+                self.image = image
+            }
+        }.resume()
+    }
+}
+
+import WebKit
+
+extension UIImageView: UIWebViewDelegate {
+
+    private func prepareForWebView() -> WKWebView {
+        let webView = WKWebView()
+        webView.scrollView.isScrollEnabled = false
+        webView.contentMode = .scaleAspectFit
+        webView.backgroundColor = .clear
+        webView.isOpaque = false
+        addSubview(webView)
+
+        webView.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            webView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            webView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            webView.topAnchor.constraint(equalTo: topAnchor),
+            webView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        return webView
+    }
+
+    func loadWithWebView(urlString: String) {
+        let webView = prepareForWebView()
+        webView.stopLoading()
+        if let url = URL(string: urlString) {
+            webView.load(URLRequest(url: url))
+        }
     }
 }
